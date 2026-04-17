@@ -34,9 +34,7 @@ def collect_historical_prices_with_features(ticker, start_date, end_date, output
     if 'Adj Close' in df.columns:
         df.drop(columns=['Adj Close'], inplace=True)
         
-    # ---------------------------------------------------------
-    # PART A: CALCULATE PRE-MARKET FEATURES (Daily based)
-    # ---------------------------------------------------------
+    # CALCULATE PRE-MARKET FEATURES (Daily based)
     print("Calculating Pre-Market Features...")
     
     # Feature 1: Pre-Market Gap Percentage
@@ -54,9 +52,7 @@ def collect_historical_prices_with_features(ticker, start_date, end_date, output
     
     df.drop(columns=['yesterday_close', 'SMA_5', 'yesterday_sma', 'day_before_yesterday_sma'], inplace=True)
 
-    # ---------------------------------------------------------
-    # PART A: CALCULATE PRE-MARKET VOLUME (Intraday based)
-    # ---------------------------------------------------------
+    # CALCULATE PRE-MARKET VOLUME (Intraday based)
     print("Fetching intraday data for pre-market volume (Note: yfinance limits this to the last 730 days)...")
     try:
         # Calculate the absolute oldest date yfinance will accept for 1h data
@@ -108,9 +104,7 @@ def collect_historical_prices_with_features(ticker, start_date, end_date, output
         print(f"Could not fetch intraday data: {e}")
         df['pre_market_volume_relative'] = np.nan
 
-    # ---------------------------------------------------------
     # FINAL CLEANUP & EXPORT
-    # ---------------------------------------------------------
     # Impute missing pre-market volume data with 1.0 (representing 'average' volume)
     df['pre_market_volume_relative'] = df['pre_market_volume_relative'].fillna(1.0)
     
