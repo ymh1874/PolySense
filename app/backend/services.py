@@ -112,7 +112,8 @@ def _normalize_phase(phase: str | None) -> str:
     raise ValueError(f"Unknown phase: {phase}")
 
 
-# Determines the correct target column to predict based on specific project business logic (Phase A vs B).
+# Fixed function - replace in app/backend/services.py lines 115-140
+
 def _resolve_phase_target(df: pd.DataFrame, phase: str | None, requested_target: str | None) -> tuple[str, List[str]]:
     phase_value = _normalize_phase(phase)
 
@@ -121,19 +122,26 @@ def _resolve_phase_target(df: pd.DataFrame, phase: str | None, requested_target:
         if "end_price" not in df.columns:
             raise ValueError("Phase B requires end_price so target_close_higher_prev can be derived.")
         # Return the derived target column name and a list of internal columns to exclude from training.
-        return "target_close_higher_prev", ["trade_date", "target_close_higher_prev", "end_price", "pm_direction_up", "pm_direction_up_synth", "up_price_final", "down_price_final"]
+        # Excludes leakage columns that correlate with the same-day price movement
+        return "target_close_higher_prev", [
+            "trade_date", "target_close_higher_prev", "end_price", 
+            "open_price", "close_price", "stock_return_daily",
+            "pm_direction_up", "pm_direction_up_synth", "pm_direction_up_final",
+            "up_price_final", "down_price_final"
+        ]
 
     # For Phase A, try to use exactly what the user asked for if it exists.
     if requested_target in {"pm_direction_up", "pm_direction_up_final"}:
         if requested_target in df.columns:
-            return requested_target, ["trade_date", requested_target, "pm_return"]
+            # Excludes leakage columns: open_price and close_price correlate with market direction
+            return requested_target, ["trade_date", requested_target, "pm_return", "open_price", "close_price"]
     # Fallback cascade: look for known Polymarket direction columns in a specific order of preference.
     if "pm_direction_up" in df.columns:
-        return "pm_direction_up", ["trade_date", "pm_direction_up", "pm_return"]
+        return "pm_direction_up", ["trade_date", "pm_direction_up", "pm_return", "open_price", "close_price"]
     if "pm_direction_up_final" in df.columns:
-        return "pm_direction_up_final", ["trade_date", "pm_direction_up_final", "pm_return"]
+        return "pm_direction_up_final", ["trade_date", "pm_direction_up_final", "pm_return", "open_price", "close_price"]
     if "pm_direction_up_synth" in df.columns:
-        return "pm_direction_up_synth", ["trade_date", "pm_direction_up_synth", "pm_return"]
+        return "pm_direction_up_synth", ["trade_date", "pm_direction_up_synth", "pm_return", "open_price", "close_price"]
     # If no appropriate target column exists, fail.
     raise ValueError(
         "Phase A requires a Polymarket direction column: pm_direction_up, pm_direction_up_final, or pm_direction_up_synth."
@@ -565,9 +573,26 @@ def train_models(
 
 # Helper function to look up a model by its ID.
 def get_model(model_id: str) -> Dict[str, Any]:
-    if model_id not in MODELS:
-        raise ValueError(f"Model not found: {model_id}")
-    return MODELS[model_id]
+    # First look in the in-memory registry.
+    if model_id in MODELS:
+        return MODELS[model_id]
+
+    # If not registered in memory, try to find a saved artifact on disk and reconstruct a minimal record.
+    artifact_path = ARTIFACT_DIR / f"{model_id}.joblib"
+    if artifact_path.exists():
+        try:
+            packed = joblib.load(artifact_path)
+        except Exception as exc:
+            raise ValueError(f"Model artifact found but failed to load: {artifact_path}. {exc}") from exc
+        record = {
+            "model_id": model_id,
+            "artifact_path": str(artifact_path),
+            "features": packed.get("features", []),
+        }
+        MODELS[model_id] = record
+        return record
+
+    raise ValueError(f"Model not found: {model_id}")
 
 
 # Function to generate a single prediction (e.g., from user input in a web form).

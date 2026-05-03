@@ -103,6 +103,68 @@ Then open `http://127.0.0.1:5173`
 4. **Model training**: Adjust hyperparameters and train the Gradient Boosting model with cross-validation.
 5. **Inference**: Run single or batch predictions using the trained model.
 
+## Command-line Interface (CLI)
+
+A lightweight CLI replicates core backend functionality without the webapp. It's useful for quick experiments and debugging.
+
+Script: `scripts/quam_cli.py`
+
+Notes:
+- The CLI accepts either a `--phase` (phaseA/phaseB) or an explicit `--dataset-id` (for example `processed::phase_a_prepared`).
+- If you accidentally pass a dataset id into `--phase` (e.g., `--phase processed::phase_a_prepared`) the CLI will detect this and use it as the dataset id.
+- It's recommended to run the CLI using the project's virtualenv Python so dependencies are available: `.venv/bin/python scripts/quam_cli.py ...`.
+
+Common examples (using the project venv):
+
+List datasets:
+
+```bash
+.venv/bin/python scripts/quam_cli.py list
+```
+
+Preview a dataset (first 8 rows):
+
+```bash
+.venv/bin/python scripts/quam_cli.py preview processed::phase_b_prepared --limit 8
+```
+
+Prepare features by phase (uses prepared dataset if available):
+
+```bash
+.venv/bin/python scripts/quam_cli.py prepare --phase phaseB
+```
+
+Prepare features by dataset id (no `--phase` required):
+
+```bash
+.venv/bin/python scripts/quam_cli.py prepare --dataset-id processed::phase_a_prepared
+```
+
+Train models by phase:
+
+```bash
+.venv/bin/python scripts/quam_cli.py train --phase phaseA
+```
+
+Train models by dataset id (CLI will infer phase if possible):
+
+```bash
+.venv/bin/python scripts/quam_cli.py train --dataset-id processed::phase_a_prepared
+```
+
+Single prediction (after training to create `mdl_xxxxxxxx`):
+
+```bash
+.venv/bin/python scripts/quam_cli.py predict-single mdl_xxxxxxxx '{"start_price": 100, "volume": 12345}'
+```
+
+Batch prediction:
+
+```bash
+.venv/bin/python scripts/quam_cli.py predict-batch mdl_xxxxxxxx processed::phase_b_prepared
+```
+
+
 ## Dataset
 
 PolySense QuAM works with multimodal datasets containing stock price features, technical indicators, and sentiment data.

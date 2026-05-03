@@ -8,3 +8,8 @@ app/frontend/node_modules/
 app/frontend/node_modules/.vite/
 notebooks/.ipynb_checkpoints/
 xexpores/
+scripts/__pycache__/
+scripts/archive/
+tests/__pycache__/
+models/
+tests/
