@@ -4,3 +4,7 @@ __pycache__/
 *.pyc
 Processed/
 exports/
+app/frontend/node_modules/
+app/frontend/node_modules/.vite/
+notebooks/.ipynb_checkpoints/
+xexpores/

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="api-base" content="http://127.0.0.1:8000" />
+    <title>PolySense QuAM</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">QuAM Software</p>
+          <h1>PolySense QuAM</h1>
+          <p class="lede">A clear, minimal interface for dataset input, training, and inference.</p>
+        </div>
+        <div class="status-card">
+          <div>
+            <p class="label">Status</p>
+            <p class="status" id="status" data-tone="idle">Ready</p>
+          </div>
+          <div class="status-actions">
+            <label for="apiBase">API base</label>
+            <div class="inline">
+              <input id="apiBase" type="text" placeholder="http://127.0.0.1:8000" />
+              <button id="saveApiBase" class="button ghost">Save</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel" style="--delay: 0.05s;">
+        <div class="panel-head">
+          <div>
+            <p class="step">1. Dataset input</p>
+            <h2>Bring in your data</h2>
+            <p class="muted">Upload a CSV, register a server path, or select an existing dataset.</p>
+          </div>
+          <button id="refreshDatasets" class="button ghost">Refresh list</button>
+        </div>
+        <div class="panel-grid">
+          <div class="field">
+            <label for="datasetUpload">Upload CSV</label>
+            <input id="datasetUpload" type="file" accept=".csv" />
+          </div>
+          <div class="field">
+            <label for="datasetPath">Register dataset path</label>
+            <div class="inline">
+              <input id="datasetPath" type="text" placeholder="/absolute/path/to/data.csv" />
+              <button id="registerPath" class="button">Register</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="datasetSelect">Select dataset</label>
+            <select id="datasetSelect">
+              <option value="">Select dataset...</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button id="previewDataset" class="button">Preview dataset</button>
+        </div>
+        <div class="preview" id="datasetPreview"></div>
+      </section>
+
+      <section class="panel" style="--delay: 0.1s;">
+        <div class="panel-head">
+          <div>
+            <p class="step">2. Parameters</p>
+            <h2>Configure features</h2>
+            <p class="muted">Set the target column, exclusions, and numeric quality filter.</p>
+          </div>
+        </div>
+        <div class="panel-grid">
+          <div class="field">
+            <label>Target option</label>
+            <div class="radio-grid">
+              <label class="check">
+                <input type="radio" name="targetMode" value="phaseA" checked />
+                Phase A: predict Polymarket direction
+              </label>
+              <label class="check">
+                <input type="radio" name="targetMode" value="phaseB" />
+                Phase B: predict close higher than previous
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="panel-grid">
+          <div class="field">
+            <label for="targetCol">Target column</label>
+            <input id="targetCol" type="text" value="pm_direction_up_final" />
+          </div>
+          <div class="field">
+            <label for="minNumericRatio">Minimum numeric ratio</label>
+            <input id="minNumericRatio" type="number" min="0" max="1" step="0.05" value="0.8" />
+          </div>
+          <div class="field">
+            <label for="excludeCols">Exclude columns (comma-separated)</label>
+            <input id="excludeCols" type="text" value="trade_date,open_price,close_price,pm_return,pm_direction_up" />
+          </div>
+          <div class="field">
+            <label for="forceInclude">Force include features (comma-separated)</label>
+            <input id="forceInclude" type="text" placeholder="optional" />
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button id="prepareFeatures" class="button">Prepare features</button>
+        </div>
+        <div class="preview" id="featurePreview"></div>
+      </section>
+
+      <section class="panel" style="--delay: 0.15s;">
+        <div class="panel-head">
+          <div>
+            <p class="step">3. Training</p>
+            <h2>Train the best model</h2>
+            <p class="muted">Best model only: Gradient Boosting. Adjust hyperparameters, then run training.</p>
+          </div>
+          <button id="trainModels" class="button">Train best model</button>
+        </div>
+        <div class="model-grid">
+          <div class="model-card">
+            <div class="model-head">
+              <span class="pill">Best model</span>
+              <strong>Gradient Boosting</strong>
+            </div>
+            <div class="model-fields">
+              <div class="field">
+                <label>n_estimators</label>
+                <input id="gbEstimators" type="number" value="100" />
+              </div>
+              <div class="field">
+                <label>learning_rate</label>
+                <input id="gbLearningRate" type="number" step="0.01" value="0.1" />
+              </div>
+              <div class="field">
+                <label>max_depth</label>
+                <input id="gbMaxDepth" type="number" value="3" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="preview" id="trainingResults"></div>
+      </section>
+
+      <section class="panel" style="--delay: 0.2s;">
+        <div class="panel-head">
+          <div>
+            <p class="step">4. Inference</p>
+            <h2>Run predictions</h2>
+            <p class="muted">Use the best trained model for single or batch queries.</p>
+          </div>
+        </div>
+        <div class="panel-grid">
+          <div class="field">
+            <label>Active model</label>
+            <div class="chip" id="modelLabel">Train the best model to enable inference.</div>
+          </div>
+          <div class="field">
+            <label for="singleInput">Single query JSON</label>
+            <textarea id="singleInput" rows="6">{}</textarea>
+          </div>
+        </div>
+        <div class="panel-actions">
+          <button id="runSingle" class="button">Run single prediction</button>
+          <button id="runBatch" class="button ghost">Run batch on dataset</button>
+        </div>
+        <div class="panel-grid">
+          <div class="field">
+            <label for="batchUpload">Batch upload CSV (optional)</label>
+            <input id="batchUpload" type="file" accept=".csv" />
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button id="runBatchUpload" class="button ghost">Run batch on uploaded CSV</button>
+          </div>
+        </div>
+        <div class="preview" id="inferenceResults"></div>
+      </section>
+    </main>
+    <script src="./app.js" defer></script>
+  </body>
+</html>
